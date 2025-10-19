@@ -6,7 +6,7 @@ import VideoPlayer from "@/views/VideoPlayer";
 function App() {
   return (
     <main className="h-screen">
-      <section className="relative text-white py-8 px-8 w-fulls">
+      <section className="relative text-white py-8 px-8 w-fulls z-10 ">
         <h1 className="text-2xl text-nRed font-bold">HomeFlix</h1>
       </section>
       <Routes>

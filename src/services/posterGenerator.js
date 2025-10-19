@@ -137,7 +137,7 @@ async function generatePosterForMovieFolder(folderName) {
   try {
     await fs.access(posterPath);
     console.log(`Poster already exists for ${folderName}`);
-    //return posterPath;
+    return posterPath;
   } catch {}
 
   const duration = await getVideoDuration(moviePath);

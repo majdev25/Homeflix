@@ -31,7 +31,7 @@ const localIP = getLocalIP();
 const serverURL = `http://${localIP}:${PORT}`;
 const reactDir = path.join(process.cwd(), "react");
 
-if (true) {
+if (process.argv.includes("--prod")) {
   const envContent = `REACT_APP_SERVER_URL=${serverURL}`;
   fs.writeFileSync(path.join(reactDir, ".env.production"), envContent);
   console.log(`✅ Wrote .env.production with server URL: ${serverURL}`);
