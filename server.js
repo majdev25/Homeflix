@@ -1,21 +1,89 @@
 const express = require("express");
-const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
+const movieRoutes = require("./src/routes/index.js");
+const fs = require("fs");
+const os = require("os");
+const { exec } = require("child_process");
+
+const {
+  generatePostersForAllMovies,
+} = require("./src/services/posterGenerator.js");
+
+// Immediately generate posters on startup
+generatePostersForAllMovies();
+
+function getLocalIP() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === "IPv4" && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return "localhost";
+}
 
 const app = express();
-const PORT = 3001;
+const PORT = 3002;
+const localIP = getLocalIP();
+const serverURL = `http://${localIP}:${PORT}`;
+const reactDir = path.join(process.cwd(), "react");
 
-const moviesDir = path.join(process.cwd(), "movies");
+if (true) {
+  const envContent = `REACT_APP_SERVER_URL=${serverURL}`;
+  fs.writeFileSync(path.join(reactDir, ".env.production"), envContent);
+  console.log(`✅ Wrote .env.production with server URL: ${serverURL}`);
 
+  console.log("📦 Building React app...");
+
+  exec(
+    `cd ${reactDir} && npm install && npm run build`,
+    (err, stdout, stderr) => {
+      if (err) {
+        console.error("❌ React build failed:", err);
+        console.error(stderr);
+        return;
+      }
+      console.log("✅ React build completed");
+      console.log(stdout);
+    }
+  );
+}
+
+// Middleware
 app.use(cors());
+app.use(express.json());
 
-// Serve static files (like index.html)
-//app.use(express.static(__dirname));
+// Static movies folder (optional, for posters or media)
+const moviesDir = path.join(process.cwd(), "movies");
+app.use("/movies", express.static(moviesDir));
 
-// Serve video file
-app.get("/video", (req, res) => {
-  const videoPath = path.join(__dirname, "video.mp4"); // Your video file
+// Routes
+
+app.use("/", movieRoutes);
+
+app.get("/movie/:title", (req, res) => {
+  const title = req.params.title;
+  const movieDir = path.join(__dirname, "movies", title);
+
+  // Check if the folder exists
+  if (!fs.existsSync(movieDir)) {
+    return res.status(404).send("Movie not found");
+  }
+
+  // Look for .mp4 or .mkv file in the folder
+  const files = fs.readdirSync(movieDir);
+  const videoFile = files.find(
+    (file) => file.endsWith(".mp4") || file.endsWith(".mkv")
+  );
+
+  if (!videoFile) {
+    return res.status(404).send("No video file found in movie folder");
+  }
+
+  const videoPath = path.join(movieDir, videoFile);
   const stat = fs.statSync(videoPath);
   const fileSize = stat.size;
   const range = req.headers.range;
@@ -37,59 +105,33 @@ app.get("/video", (req, res) => {
       "Content-Range": `bytes ${start}-${end}/${fileSize}`,
       "Accept-Ranges": "bytes",
       "Content-Length": chunkSize,
-      "Content-Type": "video/mp4",
+      "Content-Type": videoFile.endsWith(".mp4")
+        ? "video/mp4"
+        : "video/x-matroska",
     });
 
     fileStream.pipe(res);
   } else {
     res.writeHead(200, {
       "Content-Length": fileSize,
-      "Content-Type": "video/mp4",
+      "Content-Type": videoFile.endsWith(".mp4")
+        ? "video/mp4"
+        : "video/x-matroska",
     });
     fs.createReadStream(videoPath).pipe(res);
   }
 });
 
-// Serve subtitles (.srt or .vtt)
-app.get("/subtitles", (req, res) => {
-  const subtitlePath = path.join(__dirname, "sub.vtt"); // Use .vtt format for better compatibility
-  res.setHeader("Content-Type", "text/vtt");
-  fs.createReadStream(subtitlePath).pipe(res);
+// Serve React static files
+const reactBuildDir = path.join(process.cwd(), "react", "build");
+app.use(express.static(reactBuildDir));
+
+// Serve React app for all other routes
+app.get("*", (req, res) => {
+  res.sendFile(path.join(process.cwd(), "react", "build", "index.html"));
 });
 
-// Separate async function for reading movie folders
-async function getAllMovies() {
-  try {
-    const files = await fs.promises.readdir(moviesDir, { withFileTypes: true });
-
-    const movieFolders = files
-      .filter((dirent) => dirent.isDirectory())
-      .map((dirent) => ({
-        name: dirent.name,
-      }));
-
-    return movieFolders;
-  } catch (error) {
-    console.error("Error reading movies folder:", error);
-    throw new Error("Failed to read movies folder");
-  }
-}
-
-// GET endpoint
-app.get("/all-movies", async (req, res) => {
-  try {
-    const movies = await getAllMovies();
-    res.json(movies);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+// Start server
+app.listen(PORT, () => {
+  console.log(`✅ Server running at http://localhost:${PORT}`);
 });
-
-// Serve index.html
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
-});
-
-app.listen(PORT, () =>
-  console.log(`Server running at http://localhost:${PORT}`)
-);
