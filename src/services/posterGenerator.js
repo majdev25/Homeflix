@@ -123,7 +123,10 @@ async function saveAverageColor(posterPath) {
 // Generate poster for a single movie folder
 async function generatePosterForMovieFolder(folderName) {
   await tf.ready();
-  const model = await blazeface.load();
+  const modelPath = `file://${path.resolve(__dirname, "../models/model.json")}`;
+  const model = await blazeface.load({
+    modelUrl: modelPath,
+  });
 
   const folderPath = path.join(MOVIES_DIR, folderName);
   const files = await fs.readdir(folderPath);
