@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { convertToVtt } = require("../services/subtitleConverter");
 
 const { MOVIES_DIR } = require("../config/paths.js");
 
@@ -85,49 +86,17 @@ async function getSubtitle(req, res) {
     }
 
     const subtitlePath = path.join(movieDir, subtitleFile);
-    const ext = path.extname(subtitleFile).toLowerCase();
 
-    // --- If it's already .vtt, just stream it ---
-    if (ext === ".vtt") {
-      res.writeHead(200, {
-        "Content-Type": "text/vtt",
-      });
-      fs.createReadStream(subtitlePath).pipe(res);
-      return;
-    }
+    // Cache headers
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
 
-    // --- If it's .srt, convert to .vtt on the fly ---
-    if (ext === ".srt") {
-      res.writeHead(200, {
-        "Content-Type": "text/vtt",
-      });
+    // Convert to VTT and send
+    const vttData = await convertToVtt(subtitlePath);
 
-      const srtData = fs.readFileSync(subtitlePath, "utf8");
-
-      // Convert .srt to .vtt
-      const vttData =
-        "WEBVTT\n\n" +
-        srtData
-          .replace(/\r+/g, "")
-          .replace(/^\s+|\s+$/g, "")
-          .split("\n\n")
-          .map((block) =>
-            block.replace(
-              /(\d+)\n(\d{2}:\d{2}:\d{2}),(\d{3}) --> (\d{2}:\d{2}:\d{2}),(\d{3})/g,
-              "$2.$3 --> $4.$5"
-            )
-          )
-          .join("\n\n");
-
-      res.end(vttData);
-      return;
-    }
-
-    // --- Other formats just serve as text (fallback) ---
-    res.writeHead(200, {
-      "Content-Type": "text/plain",
-    });
-    fs.createReadStream(subtitlePath).pipe(res);
+    res.writeHead(200, { "Content-Type": "text/vtt" });
+    res.end(vttData);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to return subtitle." });

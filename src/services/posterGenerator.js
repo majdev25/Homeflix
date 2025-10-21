@@ -49,7 +49,7 @@ async function cropFaceToCenter(imagePath, finalOutputPath, detections) {
   if (!detections.length) {
     await fs.writeFile(debugOutputPath, buffer);
     await fs.writeFile(finalOutputPath, buffer);
-    console.log("No face detected, original images copied.");
+    console.log("No face detected, original image copied.");
     return;
   }
 
@@ -58,14 +58,16 @@ async function cropFaceToCenter(imagePath, finalOutputPath, detections) {
   const faceCenterY = face.y + face.height / 2;
 
   // ---- Step 1: Draw red rectangle on original image ----
-  const debugCanvas = canvas.createCanvas(imgWidth, imgHeight);
-  const debugCtx = debugCanvas.getContext("2d");
-  debugCtx.drawImage(img, 0, 0);
-  debugCtx.strokeStyle = "red";
-  debugCtx.lineWidth = 3;
-  debugCtx.strokeRect(face.x, face.y, face.width, face.height);
-  await fs.writeFile(debugOutputPath, debugCanvas.toBuffer("image/png"));
-  console.log("Debug image saved:", debugOutputPath);
+  if (process.argv.includes("--debug")) {
+    const debugCanvas = canvas.createCanvas(imgWidth, imgHeight);
+    const debugCtx = debugCanvas.getContext("2d");
+    debugCtx.drawImage(img, 0, 0);
+    debugCtx.strokeStyle = "red";
+    debugCtx.lineWidth = 3;
+    debugCtx.strokeRect(face.x, face.y, face.width, face.height);
+    await fs.writeFile(debugOutputPath, debugCanvas.toBuffer("image/png"));
+    console.log("Debug image saved:", debugOutputPath);
+  }
 
   // ---- Step 2: Crop around the face ----
 
@@ -100,14 +102,12 @@ async function cropFaceToCenter(imagePath, finalOutputPath, detections) {
   );
 
   await fs.writeFile(finalOutputPath, finalCanvas.toBuffer("image/png"));
-  console.log("Cropped image saved:", finalOutputPath);
 }
 
 // Detect faces in an image
 async function detectFace(imagePath) {
   const c = await loadImageToCanvas(imagePath);
   const detections = await faceapi.detectAllFaces(c);
-  console.log(detections);
   return detections;
 }
 
@@ -128,7 +128,6 @@ async function saveAverageColor(posterPath) {
     const folderPath = path.dirname(posterPath);
     const colorFile = path.resolve(folderPath, "colors.json");
     await fs.writeFile(colorFile, JSON.stringify(color, null, 2));
-    console.log(`Saved average color for ${folderPath}: ${color.hex}`);
     return color;
   } catch (err) {
     console.error("Failed to calculate average color:", err);
@@ -158,7 +157,7 @@ async function generatePosterForMovieFolder(folderName) {
   }
 
   const duration = await getVideoDuration(moviePath);
-  const maxAttempts = 10;
+  const maxAttempts = 20;
   let lastTempFrame = null;
   let lastDetections = [];
 
@@ -200,7 +199,7 @@ async function generatePosterForMovieFolder(folderName) {
       await cropFaceToCenter(tempFramePath, posterPath, detections);
       await saveAverageColor(posterPath);
       await fs.unlink(tempFramePath);
-      console.log(`Poster created for ${folderName} with centered face`);
+      console.log(`Poster created for ${folderName}`);
       return posterPath;
     } else {
       if (i < maxAttempts - 1) await fs.unlink(tempFramePath);
