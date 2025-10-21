@@ -7,7 +7,7 @@ export interface Movie {
 export async function getMovies(): Promise<Movie[]> {
   try {
     const res = await fetch(
-      process.env.REACT_APP_SERVER_URL + "/movies/all-movies"
+      process.env.REACT_APP_SERVER_URL + "/api/movies/all-movies"
     );
     if (!res.ok) throw new Error("Network response was not ok");
     const data = await res.json();

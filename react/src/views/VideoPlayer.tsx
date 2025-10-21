@@ -8,11 +8,19 @@ function VideoPlayer() {
     <div className="w-100 h-full flex items-center justify-center">
       <video controls className="w-100 flex-1">
         <source
-          src={process.env.REACT_APP_SERVER_URL + "/movie/" + title}
+          src={
+            process.env.REACT_APP_SERVER_URL +
+            "/api/stream/getMovieChunk/" +
+            title
+          }
           type="video/mp4"
         />
         <track
-          src="/subtitles"
+          src={
+            process.env.REACT_APP_SERVER_URL +
+            "/api/stream/getSubtitle/" +
+            title
+          }
           kind="subtitles"
           srcLang="en"
           label="English"

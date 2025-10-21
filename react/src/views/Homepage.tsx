@@ -14,7 +14,7 @@ function Homepage() {
     <div className="w-full">
       {movies.length > 0 && (
         <img
-          src={`${process.env.REACT_APP_SERVER_URL}/movies/${movies[0].posterPath}`}
+          src={`${process.env.REACT_APP_SERVER_URL}/static/movies/${movies[0].posterPath}`}
           alt={movies[0].title}
           className="absolute w-full h-full object-cover z-0 blur-3xl"
         />
@@ -27,7 +27,7 @@ function Homepage() {
           >
             {/* Featured image with stronger glow */}
             <img
-              src={`${process.env.REACT_APP_SERVER_URL}/movies/${movies[0].posterPath}`}
+              src={`${process.env.REACT_APP_SERVER_URL}/static/movies/${movies[0].posterPath}`}
               alt={movies[0].title}
               className="rounded-3xl w-full h-full object-cover"
             />
@@ -59,7 +59,7 @@ function Homepage() {
               className="md:w-[220px] h-[300px] w-100 relative rounded-xl overflow-hidden group shadow-2xl"
             >
               <img
-                src={`${process.env.REACT_APP_SERVER_URL}/movies/${movie.posterPath}`}
+                src={`${process.env.REACT_APP_SERVER_URL}/static/movies/${movie.posterPath}`}
                 alt={movie.title}
                 className="w-full h-full object-cover z-1"
               />

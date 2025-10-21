@@ -3,49 +3,59 @@ const path = require("path");
 const ffmpeg = require("fluent-ffmpeg");
 const ffmpegPath = require("ffmpeg-static");
 const ffprobePath = require("ffprobe-static");
-const { MOVIES_DIR } = require("../config/paths.js");
+const { MOVIES_DIR, MODELS_DIR } = require("../config/paths.js");
 
-const tf = require("@tensorflow/tfjs-node");
-const blazeface = require("@tensorflow-models/blazeface");
 const canvas = require("canvas");
+const faceapi = require("face-api.js");
+const tf = require("@tensorflow/tfjs");
+require("@tensorflow/tfjs-backend-cpu"); // CPU-only backend
 const { getAverageColor } = require("fast-average-color-node");
 
 const { Canvas, Image, ImageData } = canvas;
 
-// Tell fluent-ffmpeg where to find the binaries
+// Tell fluent-ffmpeg where to find binaries
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath.path);
 
-// Load image from disk into a Canvas
+// Monkey patch canvas for face-api.js
+faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
+
+async function loadModels() {
+  await faceapi.nets.ssdMobilenetv1.loadFromDisk(
+    path.resolve(MODELS_DIR, "ssd_mobilenetv1")
+  );
+  console.log("Face detection model loaded");
+}
+
+// Load image from disk into a Canvas using Buffer (handles special characters)
 async function loadImageToCanvas(imagePath) {
-  const img = await canvas.loadImage(imagePath);
+  const buffer = await fs.readFile(imagePath);
+  const img = await canvas.loadImage(buffer);
   const c = canvas.createCanvas(img.width, img.height);
   const ctx = c.getContext("2d");
   ctx.drawImage(img, 0, 0);
   return c;
 }
 
-// Crop image so that face is slightly right-of-center and vertically centered
-async function cropFaceToCenter(imagePath, finalOutputPath, predictions) {
-  const img = await canvas.loadImage(imagePath);
+// Crop image around detected face
+async function cropFaceToCenter(imagePath, finalOutputPath, detections) {
+  const buffer = await fs.readFile(imagePath);
+  const img = await canvas.loadImage(buffer);
   const imgWidth = img.width;
   const imgHeight = img.height;
 
   const debugOutputPath = finalOutputPath + "-debug.png";
 
-  if (!predictions.length) {
-    const buffer = await fs.readFile(imagePath);
+  if (!detections.length) {
     await fs.writeFile(debugOutputPath, buffer);
     await fs.writeFile(finalOutputPath, buffer);
     console.log("No face detected, original images copied.");
     return;
   }
 
-  const face = predictions[0];
-  const [x1, y1] = face.topLeft;
-  const [x2, y2] = face.bottomRight;
-  const faceCenterX = (x1 + x2) / 2;
-  const faceCenterY = (y1 + y2) / 2;
+  const face = detections[0].box;
+  const faceCenterX = face.x + face.width / 2;
+  const faceCenterY = face.y + face.height / 2;
 
   // ---- Step 1: Draw red rectangle on original image ----
   const debugCanvas = canvas.createCanvas(imgWidth, imgHeight);
@@ -53,22 +63,27 @@ async function cropFaceToCenter(imagePath, finalOutputPath, predictions) {
   debugCtx.drawImage(img, 0, 0);
   debugCtx.strokeStyle = "red";
   debugCtx.lineWidth = 3;
-  debugCtx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+  debugCtx.strokeRect(face.x, face.y, face.width, face.height);
   await fs.writeFile(debugOutputPath, debugCanvas.toBuffer("image/png"));
   console.log("Debug image saved:", debugOutputPath);
 
   // ---- Step 2: Crop around the face ----
-  const margin = Math.max(x2 - x1, y2 - y1) * 2;
-  let cropX = faceCenterX - margin / 2;
-  let cropY = faceCenterY - margin / 2;
-  let cropWidth = margin;
-  let cropHeight = margin;
 
-  // Make sure crop stays within image
-  if (cropX < 0) cropX = 0;
-  if (cropY < 0) cropY = 0;
-  if (cropX + cropWidth > imgWidth) cropWidth = imgWidth - cropX;
-  if (cropY + cropHeight > imgHeight) cropHeight = imgHeight - cropY;
+  // Distances from face center to image edges
+  const distLeft = faceCenterX;
+  const distRight = imgWidth - faceCenterX;
+  const distTop = faceCenterY;
+  const distBottom = imgHeight - faceCenterY;
+
+  // Maximum crop sizes for X and Y separately
+  const halfWidth = Math.min(distLeft, distRight);
+  const halfHeight = Math.min(distTop, distBottom);
+
+  // Crop coordinates
+  const cropX = faceCenterX - halfWidth;
+  const cropY = faceCenterY - halfHeight;
+  const cropWidth = halfWidth * 2;
+  const cropHeight = halfHeight * 2;
 
   const finalCanvas = canvas.createCanvas(cropWidth, cropHeight);
   const finalCtx = finalCanvas.getContext("2d");
@@ -88,11 +103,12 @@ async function cropFaceToCenter(imagePath, finalOutputPath, predictions) {
   console.log("Cropped image saved:", finalOutputPath);
 }
 
-// Detect if an image has any face
-async function detectFace(imagePath, model) {
+// Detect faces in an image
+async function detectFace(imagePath) {
   const c = await loadImageToCanvas(imagePath);
-  const predictions = await model.estimateFaces(c, false);
-  return predictions;
+  const detections = await faceapi.detectAllFaces(c);
+  console.log(detections);
+  return detections;
 }
 
 // Get video duration in seconds
@@ -110,7 +126,7 @@ async function saveAverageColor(posterPath) {
   try {
     const color = await getAverageColor(posterPath);
     const folderPath = path.dirname(posterPath);
-    const colorFile = path.join(folderPath, "colors.json");
+    const colorFile = path.resolve(folderPath, "colors.json");
     await fs.writeFile(colorFile, JSON.stringify(color, null, 2));
     console.log(`Saved average color for ${folderPath}: ${color.hex}`);
     return color;
@@ -122,55 +138,66 @@ async function saveAverageColor(posterPath) {
 
 // Generate poster for a single movie folder
 async function generatePosterForMovieFolder(folderName) {
-  await tf.ready();
-  const modelPath = `file://${path.resolve(__dirname, "../models/model.json")}`;
-  const model = await blazeface.load({
-    modelUrl: modelPath,
-  });
+  await tf.setBackend("cpu");
 
-  const folderPath = path.join(MOVIES_DIR, folderName);
+  const folderPath = path.resolve(MOVIES_DIR, folderName);
   const files = await fs.readdir(folderPath);
   const movieFile = files.find((f) => f.endsWith(".mp4") || f.endsWith(".mkv"));
   if (!movieFile) return null;
 
-  const moviePath = path.join(folderPath, movieFile);
-  const posterPath = path.join(folderPath, "poster.png");
+  const moviePath = path.resolve(folderPath, movieFile);
+  const posterPath = path.resolve(folderPath, "poster.png");
 
   // Skip if poster already exists
-  try {
-    await fs.access(posterPath);
-    console.log(`Poster already exists for ${folderName}`);
-    return posterPath;
-  } catch {}
+  if (!process.argv.includes("--force_poster")) {
+    try {
+      await fs.access(posterPath);
+      console.log(`Poster already exists for ${folderName}`);
+      return posterPath;
+    } catch {}
+  }
 
   const duration = await getVideoDuration(moviePath);
   const maxAttempts = 10;
   let lastTempFrame = null;
-
-  let lastPredictions = [];
+  let lastDetections = [];
 
   for (let i = 0; i < maxAttempts; i++) {
     const randomTime = Math.random() * duration;
-    const tempFramePath = path.join(folderPath, `temp_frame_${i}.png`);
+    const tempFramePath = path.resolve(folderPath, `temp_frame_${i}.png`);
     lastTempFrame = tempFramePath;
 
     // Extract frame
     await new Promise((resolve, reject) => {
       ffmpeg(moviePath)
-        .on("end", resolve)
-        .on("error", reject)
         .screenshots({
           count: 1,
           timemarks: [randomTime],
           filename: `temp_frame_${i}.png`,
           folder: folderPath,
-        });
+        })
+        .on("end", resolve)
+        .on("error", reject);
     });
 
-    const predictions = await detectFace(tempFramePath, model);
-    lastPredictions = predictions;
-    if (predictions && predictions.length > 0) {
-      await cropFaceToCenter(tempFramePath, posterPath, predictions);
+    // wait until file exists (Windows special chars workaround)
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        await fs.access(tempFramePath);
+        break;
+      } catch {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+    }
+
+    const detections = await detectFace(tempFramePath);
+    lastDetections = detections.sort((a, b) => {
+      const areaA = a.box.width * a.box.height;
+      const areaB = b.box.width * b.box.height;
+      return areaB - areaA; // descending order
+    });
+    if (detections && detections.length > 0) {
+      await cropFaceToCenter(tempFramePath, posterPath, detections);
       await saveAverageColor(posterPath);
       await fs.unlink(tempFramePath);
       console.log(`Poster created for ${folderName} with centered face`);
@@ -181,7 +208,7 @@ async function generatePosterForMovieFolder(folderName) {
   }
 
   // fallback: use last frame
-  await cropFaceToCenter(lastTempFrame, posterPath, lastPredictions || []);
+  await cropFaceToCenter(lastTempFrame, posterPath, lastDetections || []);
   await saveAverageColor(posterPath);
   await fs.unlink(lastTempFrame);
   console.log(`No face found for ${folderName}, using last frame`);
@@ -191,13 +218,14 @@ async function generatePosterForMovieFolder(folderName) {
 async function generatePostersForAllMovies() {
   const entries = await fs.readdir(MOVIES_DIR, { withFileTypes: true });
   const folders = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+  await loadModels();
 
   for (const folder of folders) {
     await generatePosterForMovieFolder(folder);
   }
+  return;
 }
 
-// Export everything
 module.exports = {
   generatePosterForMovieFolder,
   generatePostersForAllMovies,
