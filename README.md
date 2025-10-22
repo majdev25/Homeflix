@@ -38,6 +38,26 @@ Make sure you have:
 
 ### Installation
 
+0. **Adding Movies**
+
+   To add movies to HomeFlix:
+
+   1. Create a folder inside the `movies/` directory with the **name of the movie**.
+   2. Add your **video file** (currently supported formats: **.mp4**, **.mkv**) into the folder.
+   3. Add **subtitle file** (currently supported formats: **.vtt**, **.srt**, **.ass**, **.sub**).
+
+   - File names can be anything — HomeFlix will automatically detect them.
+
+   **Example folder structure:**
+
+   ```pgsql
+   HomeFlix/
+       └─ movies/                # Add each movie here in its own folder
+           └─ Movie Name/
+               ├─ video.mp4 / video.mkv
+               └─ subtitle.srt / subtitle.vtt / subtitle.ass / subtitle.sub
+   ```
+
 1. **Clone the repository**
 
    ```bash
@@ -61,11 +81,11 @@ Make sure you have:
 
 You can customize the backend behavior using these optional flags:
 
-| Flag           | Description                                                                                  |
-| -------------- | -------------------------------------------------------------------------------------------- |
-| --force_poster | Forces regeneration of all posters, even if they already exist.                              |
-| --debug        | Generates a `poster.png-debug` image for monitoring face detection accuracy and positioning. |
-| --prod         | Builds react client and correctly connects it backend.                                       |
+| Flag         | Description                                                                                  |
+| ------------ | -------------------------------------------------------------------------------------------- |
+| force_poster | Forces regeneration of all posters, even if they already exist.                              |
+| debug        | Generates a `poster.png-debug` image for monitoring face detection accuracy and positioning. |
+| prod         | Builds react client and correctly connects it backend.                                       |
 
 Then open your browser and visit the link displayed in the terminal..
 
