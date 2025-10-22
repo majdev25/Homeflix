@@ -8,6 +8,8 @@
 ![AI Powered](https://img.shields.io/badge/AI--Powered-Tensor%20Flow-orange)
 [![Website](https://img.shields.io/badge/Portfolio-majdev25-blue?style=flat-square)](https://majdev25.github.io/majdev25-website/)
 
+![HomePage](screenshots/homepage.png)
+
 **HomeFlix** is a modern, self-hosted streaming service — designed for simplicity, beauty, and cross-platform accessibility.
 
 With **no database setup required**, **AI-generated posters**, and **a sleek modern interface**, HomeFlix turns your media library into a cinematic experience that works seamlessly on **Windows, macOS, and Linux**.
