@@ -12,6 +12,10 @@ const {
   generatePostersForAllMovies,
 } = require("./src/services/posterGenerator");
 
+const {
+  fetchMovieDataForAllMovies,
+} = require("./src/services/imdb-fetcher.js");
+
 function getLocalIP() {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
@@ -70,6 +74,7 @@ async function buildReactApp() {
   });
 
   await generatePostersForAllMovies();
+  await fetchMovieDataForAllMovies();
 
   // Start server
   app.listen(PORT, () => {

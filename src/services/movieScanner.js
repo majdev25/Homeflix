@@ -13,20 +13,29 @@ async function listMovies() {
     const folderPath = path.join(MOVIES_DIR, e.name);
     const posterPath = `${e.name}/poster.png`;
     const colorPath = path.join(folderPath, "colors.json");
+    const imdbPath = path.join(folderPath, "imdb-data.json");
 
     let color = null;
     try {
       const colorData = await fs.readFile(colorPath, "utf-8");
       color = JSON.parse(colorData);
-    } catch (err) {
-      // colors.json may not exist yet
+    } catch {
       color = null;
+    }
+
+    let imdbData = null;
+    try {
+      const imdbRaw = await fs.readFile(imdbPath, "utf-8");
+      imdbData = JSON.parse(imdbRaw);
+    } catch {
+      imdbData = null;
     }
 
     movies.push({
       title: e.name,
       posterPath,
       color,
+      imdbData, // <- include fetched IMDb info
     });
   }
 

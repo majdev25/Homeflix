@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import MoviePoster from "@/assets/movie_poster.jpeg";
 import { getMovies, Movie } from "@/api/movies";
-import { Link } from "react-router-dom";
+import MoviePoster from "@/components/MoviePoster";
+import HeroPoster from "@/components/HeroPoster";
 
 function Homepage() {
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -12,69 +12,16 @@ function Homepage() {
 
   return (
     <div className="w-full">
-      {movies.length > 0 && (
-        <img
-          src={`${process.env.REACT_APP_SERVER_URL}/static/movies/${movies[0].posterPath}`}
-          alt={movies[0].title}
-          className="absolute w-full h-full object-cover z-0 blur-3xl"
-        />
-      )}
-      {movies.length > 0 && (
-        <section className="relative py-8 px-8 w-full h-full flex justify-center">
-          <Link
-            to={"/watch/" + encodeURIComponent(movies[0].title)}
-            className="relative w-full h-[40vh] group shadow-2xl overflow-hidden"
-          >
-            {/* Featured image with stronger glow */}
-            <img
-              src={`${process.env.REACT_APP_SERVER_URL}/static/movies/${movies[0].posterPath}`}
-              alt={movies[0].title}
-              className="rounded-3xl w-full h-full object-cover"
-            />
+      <HeroPoster movies={movies}></HeroPoster>
 
-            {/* Dark gradient overlay for text */}
-            <div
-              className="absolute inset-0 z-2 rounded-3xl pointer-events-none"
-              style={{
-                background: `linear-gradient(to top, ${movies[0].color.hex} 0%, ${movies[0].color.hex}99 30%, transparent 100%)`,
-              }}
-            ></div>
-            {/* Overlay text */}
-            <div className="absolute bottom-10 left-10 text-white z-10">
-              <h2 className="text-4xl font-bold">{movies[0].title}</h2>
-            </div>
-          </Link>
-        </section>
-      )}
+      <div className="relative pt-8 pb-0 px-8 text-3xl z-10 font-semibold">
+        <h2>All movies</h2>
+      </div>
 
       <section className="flex md:flex-wrap md:flex-row flex-col gap-8 py-8 px-8 w-full justify-start">
-        {movies.slice(1).map((movie) => {
-          const [r, g, b] = movie.color.value; // ignore alpha
-          const shadowAlpha = movie.color.isDark ? 0.7 : 0.2; // preset opacity
-
-          return (
-            <Link
-              to={"/watch/" + encodeURIComponent(movie.title)}
-              key={movie.title}
-              className="md:w-[220px] h-[300px] w-100 relative rounded-xl overflow-hidden group shadow-2xl"
-            >
-              <img
-                src={`${process.env.REACT_APP_SERVER_URL}/static/movies/${movie.posterPath}`}
-                alt={movie.title}
-                className="w-full h-full object-cover z-1"
-              />
-              <div
-                className="absolute inset-0 z-2 pointer-events-none"
-                style={{
-                  background: `linear-gradient(to top, ${movie.color.hex} 0%, ${movie.color.hex}99 30%, transparent 100%)`,
-                }}
-              ></div>
-              <div className="absolute bottom-0 left-0 text-white z-10 text-4xl md:text-2xl font-bold text-center w-full p-3">
-                {movie.title}
-              </div>
-            </Link>
-          );
-        })}
+        {movies.map((movie) => (
+          <MoviePoster key={movie.title} {...movie} />
+        ))}
       </section>
     </div>
   );

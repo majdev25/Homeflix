@@ -2,6 +2,7 @@ export interface Movie {
   title: string;
   posterPath: string;
   color: any;
+  imdbData: any;
 }
 
 export async function getMovies(): Promise<Movie[]> {
