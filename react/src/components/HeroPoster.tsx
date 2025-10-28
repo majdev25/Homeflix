@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Movie } from "@/api/movies";
 import { Link } from "react-router-dom";
 import { formatRuntime } from "@/util/format";
+import Rating from "./Rating";
 
 interface HeroPosterProps {
   movies: Movie[];
@@ -83,7 +84,7 @@ function HeroPoster({
       <img
         src={`${process.env.REACT_APP_SERVER_URL}/static/movies/${movie.posterPath}`}
         alt={movie.title}
-        className="absolute inset-0 w-full h-full object-cover z-0 blur-3xl transition-opacity duration-700"
+        className="absolute inset-0 top-20 w-full h-full object-cover z-0 blur-3xl transition-opacity duration-700"
       />
 
       <section className="relative pt-8 px-8 w-full h-full flex justify-center z-10 overflow-hidden">
@@ -131,14 +132,15 @@ function HeroPoster({
           <div className="absolute bottom-10 left-10 text-white z-10 transition-opacity duration-700">
             <h2 className="text-4xl font-bold mb-1">{movie.title}</h2>
             {movie.imdbData && (
-              <div className="text-sm mb-2">
+              <div className="flex gap-x-2 items-center text-sm pt-1 pb-3 flex-wrap">
+                <Rating
+                  rating={movie.imdbData?.rating?.aggregateRating}
+                ></Rating>{" "}
+                | {movie.imdbData?.genres[0]} |{" "}
                 <span className="font-semibold">
                   {movie.imdbData?.startYear}
                 </span>{" "}
-                {" • " +
-                  movie.imdbData?.genres[0] +
-                  " • " +
-                  formatRuntime(movie.imdbData?.runtimeSeconds)}
+                | {formatRuntime(movie.imdbData?.runtimeSeconds)}
               </div>
             )}
             <div className="text-sm max-w-[400px] mb-4">

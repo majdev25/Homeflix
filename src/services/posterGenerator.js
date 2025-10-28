@@ -135,16 +135,21 @@ async function saveAverageColor(posterPath) {
   }
 }
 
+async function getMoviePath(folderName) {
+  const folderPath = path.resolve(MOVIES_DIR, folderName);
+  const files = await fs.readdir(folderPath);
+  const movieFile = files.find((f) => f.endsWith(".mp4") || f.endsWith(".mkv"));
+  if (!movieFile) return null;
+  const moviePath = path.resolve(folderPath, movieFile);
+  return moviePath;
+}
+
 // Generate poster for a single movie folder
 async function generatePosterForMovieFolder(folderName) {
   await tf.setBackend("cpu");
 
   const folderPath = path.resolve(MOVIES_DIR, folderName);
-  const files = await fs.readdir(folderPath);
-  const movieFile = files.find((f) => f.endsWith(".mp4") || f.endsWith(".mkv"));
-  if (!movieFile) return null;
-
-  const moviePath = path.resolve(folderPath, movieFile);
+  const moviePath = await getMoviePath(folderName);
   const posterPath = path.resolve(folderPath, "poster.png");
 
   // Skip if poster already exists
@@ -229,4 +234,6 @@ module.exports = {
   generatePosterForMovieFolder,
   generatePostersForAllMovies,
   saveAverageColor,
+  getVideoDuration,
+  getMoviePath,
 };
