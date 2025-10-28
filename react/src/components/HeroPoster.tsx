@@ -1,7 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Movie } from "@/api/movies";
 import { Link } from "react-router-dom";
-import { formatRuntime } from "@/util/format";
+import {
+  formatRuntime,
+  getPosterUrl,
+  getBackgorundOverlayGradient,
+} from "@/util/poserUtils";
 import Rating from "./Rating";
 
 interface HeroPosterProps {
@@ -82,7 +86,7 @@ function HeroPoster({
     <div>
       {/* Blurred background */}
       <img
-        src={`${process.env.REACT_APP_SERVER_URL}/static/movies/${movie.posterPath}`}
+        src={getPosterUrl(movie)}
         alt={movie.title}
         className="absolute inset-0 top-20 w-full h-full object-cover z-0 blur-3xl transition-opacity duration-700"
       />
@@ -96,7 +100,7 @@ function HeroPoster({
           {prevMovie && (
             <img
               key={prevMovie.title + "-prev"}
-              src={`${process.env.REACT_APP_SERVER_URL}/static/movies/${prevMovie.posterPath}`}
+              src={getPosterUrl(prevMovie)}
               alt={prevMovie.title}
               className={`absolute inset-0 w-full h-full object-cover transition-transform duration-[${transitionMs}ms] ease-in-out ${
                 direction === "next"
@@ -109,7 +113,7 @@ function HeroPoster({
           {/* Current image (slides in) */}
           <img
             key={movie.title + "-current"}
-            src={`${process.env.REACT_APP_SERVER_URL}/static/movies/${movie.posterPath}`}
+            src={getPosterUrl(movie)}
             alt={movie.title}
             className={`absolute inset-0 w-full h-full object-cover transition-transform duration-[${transitionMs}ms] ease-in-out ${
               prevIndex === null
@@ -124,7 +128,7 @@ function HeroPoster({
           <div
             className="absolute inset-0 z-2 pointer-events-none"
             style={{
-              background: `linear-gradient(to top, ${movie.color.hex} 0%, ${movie.color.hex}99 50%, transparent 100%)`,
+              background: getBackgorundOverlayGradient(movie),
             }}
           />
 

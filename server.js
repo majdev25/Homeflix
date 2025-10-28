@@ -1,13 +1,14 @@
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
-const apiRoutes = require("./src/routes/index.js");
 const fs = require("fs");
 const os = require("os");
 const { exec } = require("child_process");
 const util = require("util");
 const execAsync = util.promisify(exec);
+const { initSettings } = require("./initSettings.js");
 
+const apiRoutes = require("./src/routes/index.js");
 const {
   generatePostersForAllMovies,
 } = require("./src/services/posterGenerator");
@@ -53,6 +54,8 @@ async function buildReactApp() {
     await buildReactApp();
   }
 
+  const settings = await initSettings();
+
   // Middleware
   app.use(cors());
   app.use(express.json());
@@ -73,8 +76,12 @@ async function buildReactApp() {
     res.sendFile(path.join(reactBuildDir, "index.html"));
   });
 
-  await generatePostersForAllMovies();
-  await fetchMovieDataForAllMovies();
+  if (settings.useAIPoster) {
+    await generatePostersForAllMovies();
+  }
+  if (settings.useImdbAPI) {
+    await fetchMovieDataForAllMovies();
+  }
 
   // Start server
   app.listen(PORT, () => {

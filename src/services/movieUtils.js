@@ -5,6 +5,8 @@ const path = require("path");
 const { MOVIES_DIR } = require("../config/paths.js");
 const fs = require("fs/promises");
 
+const { getSettings } = require("../../initSettings.js");
+
 // Tell fluent-ffmpeg where to find binaries
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath.path);
@@ -36,16 +38,37 @@ async function getAllMovieFolders() {
   return folders;
 }
 
+async function fileExists(path) {
+  try {
+    await fs.access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Return all movies with their data
 async function listMovies() {
   const entries = await fs.readdir(MOVIES_DIR, { withFileTypes: true });
   const movies = [];
 
+  const settings = await getSettings();
+
   for (const e of entries) {
     if (!e.isDirectory()) continue;
 
     const folderPath = path.join(MOVIES_DIR, e.name);
-    const posterPath = `${e.name}/poster.png`;
+    let posterPath = ``;
+
+    if (
+      settings.useAIPoster &&
+      (await fileExists(`${path.join(MOVIES_DIR, e.name)}/poster.png`))
+    ) {
+      posterPath = `${e.name}/poster.png`;
+    } else {
+      posterPath = null;
+    }
+
     const colorPath = path.join(folderPath, "colors.json");
     const imdbPath = path.join(folderPath, "imdb-data.json");
 
@@ -58,10 +81,12 @@ async function listMovies() {
 
     // --- Read IMDB data ---
     let imdbData = null;
-    try {
-      const imdbRaw = await fs.readFile(imdbPath, "utf-8");
-      imdbData = JSON.parse(imdbRaw);
-    } catch {}
+    if (settings.useImdbAPI) {
+      try {
+        const imdbRaw = await fs.readFile(imdbPath, "utf-8");
+        imdbData = JSON.parse(imdbRaw);
+      } catch {}
+    }
 
     // --- Read progress ---
     let progress = 0;
