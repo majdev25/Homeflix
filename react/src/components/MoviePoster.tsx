@@ -22,13 +22,15 @@ function MoviePoster(movie: Movie) {
       ></div>
       <div className="absolute bottom-0 left-0 text-white z-10 text-start w-full p-4">
         <div className="text-4xl md:text-2xl font-semibold">{movie.title}</div>
-        <div className="text-sm">
-          <span className="font-semibold">{movie.imdbData?.startYear}</span>{" "}
-          {" • " +
-            movie.imdbData?.genres[0] +
-            " • " +
-            formatRuntime(movie.imdbData?.runtimeSeconds)}
-        </div>
+        {movie.imdbData && (
+          <div className="text-sm">
+            <span className="font-semibold">{movie.imdbData?.startYear}</span>{" "}
+            {" • " +
+              movie.imdbData?.genres[0] +
+              " • " +
+              formatRuntime(movie.imdbData?.runtimeSeconds)}
+          </div>
+        )}
       </div>
     </Link>
   );

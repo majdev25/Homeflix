@@ -8,6 +8,14 @@ async function fetchDataForMovieFolder(folderName) {
   const query = encodeURIComponent(folderName);
   const searchUrl = `https://api.imdbapi.dev/search/titles?query=${query}&limit=1`;
 
+  const filePath = path.join(folderPath, "imdb-data.json");
+
+  try {
+    await fs.access(filePath);
+    console.log(`IMDB alredy fetched for ${folderName}`);
+    return;
+  } catch {}
+
   try {
     // Step 1: Search for the movie
     const searchResp = await fetch(searchUrl);
@@ -30,7 +38,6 @@ async function fetchDataForMovieFolder(folderName) {
     const movieData = await detailsResp.json();
 
     // Save the data
-    const filePath = path.join(folderPath, "imdb-data.json");
     await fs.writeFile(filePath, JSON.stringify(movieData, null, 2), "utf-8");
 
     console.log(`Saved IMDb data for "${folderName}"`);

@@ -130,13 +130,17 @@ function HeroPoster({
           {/* Static overlay text */}
           <div className="absolute bottom-10 left-10 text-white z-10 transition-opacity duration-700">
             <h2 className="text-4xl font-bold mb-1">{movie.title}</h2>
-            <div className="text-sm mb-2">
-              <span className="font-semibold">{movie.imdbData?.startYear}</span>{" "}
-              {" • " +
-                movie.imdbData?.genres[0] +
-                " • " +
-                formatRuntime(movie.imdbData?.runtimeSeconds)}
-            </div>
+            {movie.imdbData && (
+              <div className="text-sm mb-2">
+                <span className="font-semibold">
+                  {movie.imdbData?.startYear}
+                </span>{" "}
+                {" • " +
+                  movie.imdbData?.genres[0] +
+                  " • " +
+                  formatRuntime(movie.imdbData?.runtimeSeconds)}
+              </div>
+            )}
             <div className="text-sm max-w-[400px] mb-4">
               {movie.imdbData?.plot}
             </div>
