@@ -63,3 +63,6 @@ frontend/.parcel-cache/
 #movies
 movies/*
 !movies/.gitkeep
+
+#settings
+settings.json
