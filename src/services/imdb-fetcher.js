@@ -1,6 +1,7 @@
 const fs = require("fs/promises");
 const path = require("path");
 const { MOVIES_DIR, MODELS_DIR } = require("../config/paths.js");
+const { getAllMovieFolders } = require("./movieUtils.js");
 
 // Fetch movie data
 async function fetchDataForMovieFolder(folderName) {
@@ -48,8 +49,7 @@ async function fetchDataForMovieFolder(folderName) {
 
 // Get all folders
 async function fetchMovieDataForAllMovies() {
-  const entries = await fs.readdir(MOVIES_DIR, { withFileTypes: true });
-  const folders = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+  const folders = await getAllMovieFolders();
 
   for (const folder of folders) {
     await fetchDataForMovieFolder(folder);

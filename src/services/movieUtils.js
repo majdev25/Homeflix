@@ -1,8 +1,42 @@
-const fs = require("fs").promises;
+const ffmpeg = require("fluent-ffmpeg");
+const ffmpegPath = require("ffmpeg-static");
+const ffprobePath = require("ffprobe-static");
 const path = require("path");
 const { MOVIES_DIR } = require("../config/paths.js");
-const { getVideoDuration, getMoviePath } = require("./posterGenerator.js");
+const fs = require("fs/promises");
 
+// Tell fluent-ffmpeg where to find binaries
+ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfprobePath(ffprobePath.path);
+
+// Get video duration in seconds
+function getVideoDuration(filePath) {
+  return new Promise((resolve, reject) => {
+    ffmpeg.ffprobe(filePath, (err, metadata) => {
+      if (err) return reject(err);
+      resolve(metadata.format.duration);
+    });
+  });
+}
+
+// Return video file by movie name
+async function getMoviePath(folderName) {
+  const folderPath = path.resolve(MOVIES_DIR, folderName);
+  const files = await fs.readdir(folderPath);
+  const movieFile = files.find((f) => f.endsWith(".mp4") || f.endsWith(".mkv"));
+  if (!movieFile) return null;
+  const moviePath = path.resolve(folderPath, movieFile);
+  return moviePath;
+}
+
+// Return all movie folders
+async function getAllMovieFolders() {
+  const entries = await fs.readdir(MOVIES_DIR, { withFileTypes: true });
+  const folders = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+  return folders;
+}
+
+// Return all movies with their data
 async function listMovies() {
   const entries = await fs.readdir(MOVIES_DIR, { withFileTypes: true });
   const movies = [];
@@ -48,18 +82,20 @@ async function listMovies() {
       posterPath,
       color,
       imdbData,
-      progress, // 0-100
+      progress,
     });
   }
 
   return movies;
 }
 
+// Write watched progress to file
 async function writeProgress(data, folderName) {
   const file_path = path.resolve(MOVIES_DIR, folderName, "progress.json");
   await fs.writeFile(file_path, JSON.stringify(data, null, 2));
 }
 
+// Read watched progress to file
 async function readProgress(folderName) {
   const file_path = path.resolve(MOVIES_DIR, folderName, "progress.json");
   try {
@@ -77,4 +113,12 @@ async function readProgress(folderName) {
   }
 }
 
-module.exports = { listMovies, writeProgress, readProgress };
+module.exports = {
+  getVideoDuration,
+  getMoviePath,
+  ffmpeg,
+  listMovies,
+  writeProgress,
+  readProgress,
+  getAllMovieFolders,
+};

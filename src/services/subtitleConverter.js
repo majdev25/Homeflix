@@ -1,6 +1,5 @@
 const fs = require("fs");
 const path = require("path");
-const Srt2Vtt = require("srt-to-vtt"); // optional npm lib for robust conversion
 
 /**
  * Convert subtitle file to WebVTT (.vtt) format on the fly.

@@ -1,9 +1,12 @@
 const fs = require("fs/promises");
 const path = require("path");
-const ffmpeg = require("fluent-ffmpeg");
-const ffmpegPath = require("ffmpeg-static");
-const ffprobePath = require("ffprobe-static");
 const { MOVIES_DIR, MODELS_DIR } = require("../config/paths.js");
+const {
+  getVideoDuration,
+  getMoviePath,
+  ffmpeg,
+  getAllMovieFolders,
+} = require("./movieUtils.js");
 
 const canvas = require("canvas");
 const faceapi = require("face-api.js");
@@ -12,10 +15,6 @@ require("@tensorflow/tfjs-backend-cpu"); // CPU-only backend
 const { getAverageColor } = require("fast-average-color-node");
 
 const { Canvas, Image, ImageData } = canvas;
-
-// Tell fluent-ffmpeg where to find binaries
-ffmpeg.setFfmpegPath(ffmpegPath);
-ffmpeg.setFfprobePath(ffprobePath.path);
 
 // Monkey patch canvas for face-api.js
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
@@ -111,16 +110,6 @@ async function detectFace(imagePath) {
   return detections;
 }
 
-// Get video duration in seconds
-function getVideoDuration(filePath) {
-  return new Promise((resolve, reject) => {
-    ffmpeg.ffprobe(filePath, (err, metadata) => {
-      if (err) return reject(err);
-      resolve(metadata.format.duration);
-    });
-  });
-}
-
 // Save average color for poster
 async function saveAverageColor(posterPath) {
   try {
@@ -133,15 +122,6 @@ async function saveAverageColor(posterPath) {
     console.error("Failed to calculate average color:", err);
     return null;
   }
-}
-
-async function getMoviePath(folderName) {
-  const folderPath = path.resolve(MOVIES_DIR, folderName);
-  const files = await fs.readdir(folderPath);
-  const movieFile = files.find((f) => f.endsWith(".mp4") || f.endsWith(".mkv"));
-  if (!movieFile) return null;
-  const moviePath = path.resolve(folderPath, movieFile);
-  return moviePath;
 }
 
 // Generate poster for a single movie folder
@@ -220,8 +200,7 @@ async function generatePosterForMovieFolder(folderName) {
 
 // Generate posters for all movies
 async function generatePostersForAllMovies() {
-  const entries = await fs.readdir(MOVIES_DIR, { withFileTypes: true });
-  const folders = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+  const folders = await getAllMovieFolders();
   await loadModels();
 
   for (const folder of folders) {

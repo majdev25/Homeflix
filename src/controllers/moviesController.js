@@ -5,7 +5,7 @@ const {
   listMovies,
   writeProgress,
   readProgress,
-} = require("../services/movieScanner");
+} = require("../services/movieUtils");
 
 const MOVIES_DIR = path.join(process.cwd(), "movies");
 
