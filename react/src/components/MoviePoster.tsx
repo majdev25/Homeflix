@@ -1,10 +1,10 @@
-import { Movie } from "@/api/movies";
+import { Movie } from "../api/movies";
 import { Link } from "react-router-dom";
 import {
   formatRuntime,
   getPosterUrl,
   getBackgorundOverlayGradient,
-} from "@/util/poserUtils";
+} from "../util/poserUtils";
 import Rating from "./Rating";
 
 function MoviePoster(movie: Movie) {

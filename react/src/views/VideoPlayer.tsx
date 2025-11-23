@@ -1,7 +1,7 @@
 // VideoPlayer.tsx
 import React, { useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { saveProgress, getProgress } from "@/api/movies";
+import { saveProgress, getProgress } from "../api/movies";
 
 function VideoPlayer() {
   const { title } = useParams<{ title: string }>();

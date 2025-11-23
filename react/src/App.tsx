@@ -1,7 +1,7 @@
 import React from "react";
-import Homepage from "@/views/Homepage";
+import Homepage from "./views/Homepage";
 import { Routes, Route } from "react-router-dom";
-import VideoPlayer from "@/views/VideoPlayer";
+import VideoPlayer from "./views/VideoPlayer";
 
 function App() {
   return (

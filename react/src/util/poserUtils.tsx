@@ -1,5 +1,5 @@
 // utils/format.ts
-import { Movie } from "@/api/movies";
+import { Movie } from "../api/movies";
 
 export function formatRuntime(seconds?: number): string | null {
   if (!seconds) return null;

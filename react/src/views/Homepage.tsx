@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { getMovies, Movie } from "@/api/movies";
-import MoviePoster from "@/components/MoviePoster";
-import HeroPoster from "@/components/HeroPoster";
+import { getMovies, Movie } from "../api/movies";
+import MoviePoster from "../components/MoviePoster";
+import HeroPoster from "../components/HeroPoster";
 
 function Homepage() {
   const [movies, setMovies] = useState<Movie[]>([]);
